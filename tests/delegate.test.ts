@@ -36,7 +36,7 @@ test("starts a conversation on the profile with the task, returns at once, and p
   expect(prompts).toEqual([
     {
       conversationId: "c1",
-      text: "The task delegated to Pi Radiance (conversation c2) finished. Treat it as leads to check, not as verified. Its agent's last message:\n\nTwo tests fail on a timeout.",
+      text: "The task delegated to Pi Radiance finished. Treat it as leads to check, not as verified. Its agent's last message:\n\nTwo tests fail on a timeout.",
       afterTurn: true,
     },
   ]);
@@ -49,9 +49,9 @@ test("a profile that isn't there reaches the agent as Mirador's error", async ()
 });
 
 test("the reply says how the turn ended, and a long one is cut with a pointer to the conversation", () => {
-  expect(replyMessage("Local", "c2", { text: null, ended: "failed" })).toBe("The task delegated to Local (conversation c2) failed. Its agent said nothing in words.");
+  expect(replyMessage("Local", "c2", { text: null, ended: "failed" })).toBe("The task delegated to Local failed. Its agent said nothing in words.");
   const long = replyMessage("Local", "c2", { text: "x".repeat(REPLY_LIMIT + 10), ended: "stopped" });
-  expect(long).toStartWith("The task delegated to Local (conversation c2) stopped.");
+  expect(long).toStartWith("The task delegated to Local stopped.");
   expect(long).toEndWith(`${"x".repeat(10)}\n\n[Cut at ${REPLY_LIMIT} characters; conversation c2 has the whole reply.]`);
 });
 

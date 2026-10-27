@@ -20,7 +20,7 @@ function cappedReply(text: string, conversationId: string) {
 }
 
 export function replyMessage(profile: string, conversationId: string, { text, ended }: ConversationReply) {
-  const heading = `The task delegated to ${profile} (conversation ${conversationId}) ${ended}.`;
+  const heading = `The task delegated to ${profile} ${ended}.`;
   const verify = "Treat it as leads to check, not as verified.";
   if (text === null) return `${heading} Its agent said nothing in words.`;
   return `${heading} ${verify} Its agent's last message:\n\n${cappedReply(text, conversationId)}`;

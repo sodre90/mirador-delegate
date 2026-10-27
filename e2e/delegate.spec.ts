@@ -56,9 +56,11 @@ test("the delegate tool hands a task to a conversation on another profile, whose
   await test.step("the new conversation's first reply reaches the caller's agent, with the footer the plugin added to the task", async () => {
     await expect.poll(agentSaw).toContain("The task delegated to");
     const delivered = agentSaw().slice(agentSaw().indexOf("The task delegated to"));
-    expect(delivered).toContain("finished");
+    expect(delivered).toMatch(new RegExp(`^The task delegated to ${workerName} finished\\. `));
     expect(delivered).toContain("Found 3 callers.");
     expect(delivered).toContain("End with a short, plain answer");
+    const fromDelegate = page.locator(".timeline-entry:visible", { has: page.locator(".author", { hasText: "From Delegate" }) });
+    await expect(fromDelegate, "the caller's timeline shows the reply as the plugin's, not the user's").toContainText(`The task delegated to ${workerName} finished.`);
   });
 
   await test.step("a profile name that isn't there comes back as an error naming the profiles there are", async () => {
