@@ -1,0 +1,7 @@
+{
+  "name": "delegate",
+  "title": "Delegate",
+  "version": "0.1.0",
+  "api": 5,
+  "canvas": { "host": "host.ts", "view": "view.js" }
+}
