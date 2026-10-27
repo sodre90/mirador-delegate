@@ -1,7 +1,7 @@
 {
   "name": "delegate",
   "title": "Delegate",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "api": 5,
   "canvas": { "host": "host.ts", "view": "view.js" },
   "profileSettings": [
