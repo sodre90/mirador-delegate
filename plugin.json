@@ -1,7 +1,16 @@
 {
   "name": "delegate",
   "title": "Delegate",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "api": 5,
-  "canvas": { "host": "host.ts", "view": "view.js" }
+  "canvas": { "host": "host.ts", "view": "view.js" },
+  "profileSettings": [
+    {
+      "id": "delegate-to",
+      "label": "Delegate to",
+      "hint": "The profile this profile's conversations hand easy tasks to, without asking first. None: they delegate only when you ask.",
+      "choices": "profiles",
+      "default": ""
+    }
+  ]
 }

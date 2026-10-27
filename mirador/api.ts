@@ -51,6 +51,7 @@ export interface PluginItem<Data = unknown> {
 }
 
 /** A plugin's item as its host code and its view see it, without what only Mirador keeps. */
+
 /** The conversation a plugin's code runs for, and its items in the canvas there. */
 export interface CanvasPluginContext<Data = unknown> {
   conversationId: string;
@@ -60,6 +61,11 @@ export interface CanvasPluginContext<Data = unknown> {
   change(itemId: string, change: { title?: string; data?: Data }): PluginItem<Data>;
   /** What the plugin keeps across conversations and restarts, such as how its views were laid out; values are JSON. */
   storage: CanvasPluginStorage;
+  /**
+   * What the conversation's profile set for one of the plugin's profile settings, else its default; for a setting whose
+   * choices are the profiles, that profile's name. Null for none, or for a profile since deleted.
+   */
+  profileSetting(id: string): string | null;
 }
 
 export interface CanvasPluginStorage {
@@ -138,4 +144,9 @@ export interface CanvasHost<Data = unknown> {
    * reports as failed at the next start.
    */
   replied?(started: StartedConversation, reply: ConversationReply, context: CanvasActionContext<Data>): void | Promise<void>;
+  /**
+   * More lines of guidance for one conversation, from what its profile set, as `profileSetting` reads it; a conversation
+   * a plugin's tool started gets none.
+   */
+  guidanceFor?(profileSetting: (id: string) => string | null): { instructions?: string; often?: string } | null;
 }

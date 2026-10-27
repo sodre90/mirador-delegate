@@ -6,8 +6,11 @@ export const REPLY_LIMIT = 8000;
 const ASK_FOR_A_SHORT_ANSWER =
   "\n\n---\nAn agent in another conversation delegated this task to you. End with a short, plain answer: your last message goes back to it.";
 
+/** In plugin.json: the profile a profile's conversations hand tasks to when the agent names none. */
+const DELEGATE_TO = "delegate-to";
+
 interface DelegateInput {
-  profile: string;
+  profile?: string;
   task: string;
 }
 
@@ -32,13 +35,18 @@ const host: CanvasHost = {
       input: {
         type: "object",
         properties: {
-          profile: { type: "string", minLength: 1, description: "The Mirador profile to run it on, by name, e.g. the one the user named." },
+          profile: {
+            type: "string",
+            minLength: 1,
+            description: "The Mirador profile to run it on, by name, e.g. the one the user named. Leave it out for the one this conversation's profile delegates to.",
+          },
           task: { type: "string", minLength: 1, description: "Everything the other agent needs: what to do, which files or commands, and what to answer with." },
         },
-        required: ["profile", "task"],
+        required: ["task"],
       },
       async run(input, context) {
-        const { profile, task } = input as DelegateInput;
+        const { profile = context.profileSetting(DELEGATE_TO), task } = input as DelegateInput;
+        if (!profile) throw new Error("Name the profile to delegate to: this conversation's profile has none set in Delegate to (in Mirador's Profiles).");
         const started = await context.startConversation({ profile, prompt: `${task}${ASK_FOR_A_SHORT_ANSWER}` });
         return `Started conversation ${started.id} on ${started.profile}. Its reply comes as your next message; carry on with other work meanwhile, or end your turn.`;
       },
@@ -51,6 +59,13 @@ const host: CanvasHost = {
     instructions:
       "- delegate: hand an easy, self-contained task to a conversation on another profile, such as a local model, when the user asks or when it reads a lot but answers in a few lines: summarise files or logs, find where something happens, triage a list, draft boilerplate. Its reply arrives as your next message; check it before relying on it.",
     often: "- delegate: when the user asks, or for an easy task that reads a lot and answers in a few lines.",
+  },
+  guidanceFor(profileSetting) {
+    const delegateTo = profileSetting(DELEGATE_TO);
+    if (!delegateTo) return null;
+    return {
+      instructions: `- delegate: this profile delegates to ${delegateTo}. Hand it easy, self-contained tasks yourself, without asking first, and leave out the profile argument.`,
+    };
   },
 };
 

@@ -46,11 +46,11 @@ test("the delegate tool hands a task to a conversation on another profile, whose
   const delegate = (conversation: string, profile: string) => helpers().callCanvasTool(host, conversation, "delegate", { profile, task });
   let delegatedId = "";
 
-  await test.step("the tool returns at once and the new conversation shows in the sidebar", async () => {
+  await test.step("the tool returns at once and the new conversation shows folded under the caller in the sidebar", async () => {
     const started = await delegate(conversationId, workerName);
     expect(started).toMatch(/^Started conversation [0-9a-f-]+ on worker\./);
     delegatedId = started.match(/^Started conversation ([0-9a-f-]+) on/)![1]!;
-    await expect(page.locator(".sidebar").getByText("SAY Found 3 callers.")).toBeVisible();
+    await expect(page.locator(`.sidebar li[data-reorder-id="${conversationId}"]`).getByRole("button", { name: "1 delegated" })).toBeVisible();
   });
 
   await test.step("the new conversation's first reply reaches the caller's agent, with the footer the plugin added to the task", async () => {
@@ -71,5 +71,19 @@ test("the delegate tool hands a task to a conversation on another profile, whose
   await test.step("the delegated conversation can't delegate again, as Mirador keeps to one level", async () => {
     const refused = await delegate(delegatedId, workerName);
     expect(refused).toContain("can't start another");
+  });
+
+  await test.step("with Delegate to set on the caller's profile, delegate needs no profile, and without it says where to set one", async () => {
+    const unset = await helpers().callCanvasTool(host, conversationId, "delegate", { task });
+    expect(unset).toContain("has none set in Delegate to");
+
+    const dialog = await helpers().openProfiles(page);
+    await dialog.locator(".profile-list li", { hasText: delegatorName }).click();
+    await dialog.getByLabel("Profile Delegate to").selectOption({ label: workerName });
+    await dialog.getByRole("button", { name: "Save" }).click();
+    await expect(dialog.locator(".saved")).toHaveText("Saved");
+    await dialog.getByRole("button", { name: "Close" }).click();
+
+    expect(await helpers().callCanvasTool(host, conversationId, "delegate", { task })).toMatch(/^Started conversation [0-9a-f-]+ on worker\./);
   });
 });

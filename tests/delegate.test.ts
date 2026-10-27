@@ -5,12 +5,13 @@ import type { CanvasActionContext, CanvasToolContext } from "../mirador/api.ts";
 const delegate = host.tools.delegate!;
 
 /** Conversation `conversationId`'s context, starting conversations c2, c3… on the profile as Mirador names it. */
-function contexts() {
+function contexts(delegateTo: string | null = null) {
   const started: { profile: string; prompt: string }[] = [];
   const prompts: { conversationId: string; text: string; afterTurn?: boolean }[] = [];
   const contextOf = (conversationId: string) =>
     ({
       conversationId,
+      profileSetting: (id: string) => (id === "delegate-to" ? delegateTo : null),
       prompt: async (text: string, options?: { afterTurn?: boolean }) => void prompts.push({ conversationId, text, ...options }),
       startConversation: async (start: { profile: string; prompt: string }) => {
         if (start.profile === "nope") throw new Error("There is no profile named nope; the profiles are Pi Radiance.");
@@ -57,4 +58,21 @@ test("the reply says how the turn ended, and a long one is cut with a pointer to
 test("the tool's guidance says when to delegate", () => {
   expect(host.guidance?.instructions).toStartWith("- delegate: ");
   expect(host.guidance?.often).toStartWith("- delegate: ");
+});
+
+test("without a profile named, it delegates to the one the conversation's profile delegates to, and says how to set one when there is none", async () => {
+  const set = contexts("Claude Qwen 27b");
+  await delegate.run({ task: "Summarise build.log" }, set.contextOf("c1"));
+  expect(set.started.map(({ profile }) => profile)).toEqual(["Claude Qwen 27b"]);
+
+  const unset = contexts();
+  await expect(delegate.run({ task: "Summarise build.log" }, unset.contextOf("c1"))).rejects.toThrow("has none set in Delegate to");
+  expect(unset.started).toEqual([]);
+});
+
+test("a profile that delegates to another tells its conversations to hand it easy tasks without asking; one that doesn't adds nothing", () => {
+  expect(host.guidanceFor!((id) => (id === "delegate-to" ? "Claude Qwen 27b" : null))?.instructions).toBe(
+    "- delegate: this profile delegates to Claude Qwen 27b. Hand it easy, self-contained tasks yourself, without asking first, and leave out the profile argument.",
+  );
+  expect(host.guidanceFor!(() => null)).toBeNull();
 });
