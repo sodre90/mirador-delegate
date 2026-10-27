@@ -1,32 +1,29 @@
 import { expect, test } from "bun:test";
 import host, { REPLY_LIMIT, replyMessage } from "../host.ts";
-import type { CanvasToolContext, FirstReply } from "../mirador/api.ts";
+import type { CanvasActionContext, CanvasToolContext } from "../mirador/api.ts";
 
 const delegate = host.tools.delegate!;
 
-/** Conversation `conversationId`'s tool context, with one storage for all, starting conversations c2, c3… */
+/** Conversation `conversationId`'s context, starting conversations c2, c3… on the profile as Mirador names it. */
 function contexts() {
-  const stored = new Map<string, unknown>();
   const started: { profile: string; prompt: string }[] = [];
   const prompts: { conversationId: string; text: string; afterTurn?: boolean }[] = [];
-  const finishers: ((reply: FirstReply) => void)[] = [];
   const contextOf = (conversationId: string) =>
     ({
       conversationId,
-      storage: { get: (key: string) => stored.get(key), set: (key: string, value: unknown) => void stored.set(key, value) },
       prompt: async (text: string, options?: { afterTurn?: boolean }) => void prompts.push({ conversationId, text, ...options }),
       startConversation: async (start: { profile: string; prompt: string }) => {
         if (start.profile === "nope") throw new Error("There is no profile named nope; the profiles are Pi Radiance.");
         started.push(start);
-        return { id: `c${started.length + 1}`, firstReply: new Promise<FirstReply>((resolve) => finishers.push(resolve)) };
+        return { id: `c${started.length + 1}`, profile: "Pi Radiance" };
       },
-    }) as unknown as CanvasToolContext;
-  return { contextOf, started, prompts, finish: (index: number, reply: FirstReply) => finishers[index]!(reply) };
+    }) as unknown as CanvasToolContext & CanvasActionContext;
+  return { contextOf, started, prompts };
 }
 
 test("starts a conversation on the profile with the task, returns at once, and passes its reply back after the caller's turn", async () => {
-  const { contextOf, started, prompts, finish } = contexts();
-  const answer = await delegate.run({ profile: "Pi Radiance", task: "Summarise build.log" }, contextOf("c1"));
+  const { contextOf, started, prompts } = contexts();
+  const answer = await delegate.run({ profile: "pi radiance", task: "Summarise build.log" }, contextOf("c1"));
 
   expect(answer).toStartWith("Started conversation c2 on Pi Radiance.");
   expect(started).toHaveLength(1);
@@ -34,8 +31,7 @@ test("starts a conversation on the profile with the task, returns at once, and p
   expect(started[0]!.prompt).toContain("End with a short, plain answer");
   expect(prompts).toEqual([]);
 
-  finish(0, { text: "Two tests fail on a timeout.", ended: "finished" });
-  await Bun.sleep(0);
+  await host.replied!({ id: "c2", profile: "Pi Radiance" }, { text: "Two tests fail on a timeout.", ended: "finished" }, contextOf("c1"));
   expect(prompts).toEqual([
     {
       conversationId: "c1",
@@ -45,13 +41,7 @@ test("starts a conversation on the profile with the task, returns at once, and p
   ]);
 });
 
-test("a conversation it started can't delegate again", async () => {
-  const { contextOf } = contexts();
-  await delegate.run({ profile: "Pi Radiance", task: "Summarise build.log" }, contextOf("c1"));
-  await expect(delegate.run({ profile: "Pi Radiance", task: "Again" }, contextOf("c2"))).rejects.toThrow("can't delegate again");
-});
-
-test("a profile that isn't there reaches the agent as Mirador's error, and nothing is remembered", async () => {
+test("a profile that isn't there reaches the agent as Mirador's error", async () => {
   const { contextOf, started } = contexts();
   await expect(delegate.run({ profile: "nope", task: "Anything" }, contextOf("c1"))).rejects.toThrow("the profiles are Pi Radiance");
   expect(started).toEqual([]);

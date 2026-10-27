@@ -68,8 +68,8 @@ test("the delegate tool hands a task to a conversation on another profile, whose
     expect(error).toContain(workerName);
   });
 
-  await test.step("the delegated conversation can't delegate again", async () => {
+  await test.step("the delegated conversation can't delegate again, as Mirador keeps to one level", async () => {
     const refused = await delegate(delegatedId, workerName);
-    expect(refused).toContain("can't delegate again");
+    expect(refused).toContain("can't start another");
   });
 });

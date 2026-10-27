@@ -1,10 +1,7 @@
-import type { CanvasHost, CanvasToolContext, FirstReply } from "./mirador/api.ts";
+import type { CanvasHost, ConversationReply } from "./mirador/api.ts";
 
 /** Past this, the agent gets the start of the reply and a pointer to the conversation, which keeps all of it. */
 export const REPLY_LIMIT = 8000;
-
-/** In the plugin's storage: the conversations it started, which may not delegate again. */
-const DELEGATES_KEY = "delegates";
 
 const ASK_FOR_A_SHORT_ANSWER =
   "\n\n---\nAn agent in another conversation delegated this task to you. End with a short, plain answer: your last message goes back to it.";
@@ -14,18 +11,12 @@ interface DelegateInput {
   task: string;
 }
 
-const delegatesOf = ({ storage }: CanvasToolContext) => (storage.get(DELEGATES_KEY) as string[] | undefined) ?? [];
-
-function remember(context: CanvasToolContext, conversationId: string) {
-  context.storage.set(DELEGATES_KEY, [...delegatesOf(context), conversationId]);
-}
-
 function cappedReply(text: string, conversationId: string) {
   if (text.length <= REPLY_LIMIT) return text;
   return `${text.slice(0, REPLY_LIMIT)}\n\n[Cut at ${REPLY_LIMIT} characters; conversation ${conversationId} has the whole reply.]`;
 }
 
-export function replyMessage(profile: string, conversationId: string, { text, ended }: FirstReply) {
+export function replyMessage(profile: string, conversationId: string, { text, ended }: ConversationReply) {
   const heading = `The task delegated to ${profile} (conversation ${conversationId}) ${ended}.`;
   const verify = "Treat it as leads to check, not as verified.";
   if (text === null) return `${heading} Its agent said nothing in words.`;
@@ -48,15 +39,13 @@ const host: CanvasHost = {
       },
       async run(input, context) {
         const { profile, task } = input as DelegateInput;
-        if (delegatesOf(context).includes(context.conversationId)) throw new Error("This conversation was itself delegated a task, so it can't delegate again; do the task here.");
         const started = await context.startConversation({ profile, prompt: `${task}${ASK_FOR_A_SHORT_ANSWER}` });
-        remember(context, started.id);
-        void started.firstReply
-          .then((reply) => context.prompt(replyMessage(profile, started.id, reply), { afterTurn: true }))
-          .catch((error) => console.error(`${new Date().toISOString()} the delegate plugin couldn't pass back the reply of ${started.id}:`, error));
-        return `Started conversation ${started.id} on ${profile}. Its reply comes as your next message; carry on with other work meanwhile, or end your turn.`;
+        return `Started conversation ${started.id} on ${started.profile}. Its reply comes as your next message; carry on with other work meanwhile, or end your turn.`;
       },
     },
+  },
+  async replied(started, reply, context) {
+    await context.prompt(replyMessage(started.profile, started.id, reply), { afterTurn: true });
   },
   guidance: {
     instructions:

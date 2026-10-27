@@ -3,11 +3,11 @@
 A [Mirador](https://github.com/sodre90/mirador) plugin that lets the agent hand a self-contained task to a new conversation on another Mirador profile, such as one running a local model. The agent uses it when you ask, or for easy tasks that read a lot and answer in a few lines.
 
 - `delegate({ profile, task })` starts the conversation in the same workspace and returns at once. If the calling conversation bypasses permissions, the new one does too.
-- When that conversation's first turn ends, its last message reaches the agent as its next message, cut at 8,000 characters.
+- When that conversation's first turn ends, its last message reaches the agent as its next message, cut at 8,000 characters. A restart of Mirador in the meantime doesn't lose it: the turn picks up again and its reply still comes.
+- Mirador shows the task above the calling conversation's composer, where you can stop it, and nests its conversation under the caller in the sidebar.
 - A delegated conversation can't delegate again.
-- A restart of Mirador while the task runs leaves the reply undelivered. The conversation keeps it, so open it to read it.
 
-Needs Mirador's plugin API 5.
+Needs Mirador's plugin API 5, in a Mirador that has its `replied` hook.
 
 ## Develop
 
