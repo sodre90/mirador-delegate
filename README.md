@@ -14,5 +14,8 @@ Needs Mirador's plugin API 5.
 ```bash
 bun install
 bun run typecheck
-bun test
+bun run test     # unit tests
+scripts/e2e.sh   # e2e in a Mirador test host from MIRADOR_DIR, with Mirador's Playwright
 ```
+
+`MIRADOR_DIR` is Mirador's checkout, by default `../visualized-claude-sessions`.
