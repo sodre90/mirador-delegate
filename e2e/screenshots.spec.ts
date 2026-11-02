@@ -45,10 +45,20 @@ async function tidyForScreenshot(page: Page) {
   });
 }
 
-async function takeScreenshot(page: Page, name: string, region?: Locator) {
+async function takeScreenshot(page: Page, name: string, region?: { clip: { x: number; y: number; width: number; height: number } }) {
   mkdirSync(screenshotsDirectory, { recursive: true });
   await page.mouse.move(0, 0);
-  await (region ?? page).screenshot({ path: join(screenshotsDirectory, `${name}.png`) });
+  const path = join(screenshotsDirectory, `${name}.png`);
+  if (region && "clip" in region) await page.screenshot({ path, clip: region.clip });
+  else await page.screenshot({ path });
+}
+
+async function clipAround(first: Locator, last: Locator, margin = 16, horizontalMargin = margin) {
+  const top = (await first.boundingBox())!;
+  const bottom = (await last.boundingBox())!;
+  const x = Math.max(0, top.x - horizontalMargin);
+  const y = Math.max(0, top.y - margin);
+  return { clip: { x, y, width: Math.max(top.width, bottom.width) + 2 * horizontalMargin, height: bottom.y + bottom.height + margin - y } };
 }
 
 test("screenshots of delegate at work", async ({ page }) => {
@@ -66,7 +76,8 @@ test("screenshots of delegate at work", async ({ page }) => {
   const dialog = await helpers().openProfiles(page);
   await dialog.locator(".profile-list li", { hasText: callerName }).click();
   await dialog.getByLabel("Profile Delegate to").selectOption({ label: workerName });
-  await takeScreenshot(page, "delegate-to-setting", dialog);
+  const settingRow = dialog.locator("label[data-hint]", { hasText: "Delegate to" });
+  await takeScreenshot(page, "delegate-to-setting", await clipAround(settingRow, settingRow, 10, 12));
   await dialog.getByRole("button", { name: "Save" }).click();
   await expect(dialog.locator(".saved")).toHaveText("Saved");
   await dialog.getByRole("button", { name: "Close" }).click();
@@ -77,5 +88,6 @@ test("screenshots of delegate at work", async ({ page }) => {
   await expect(page.locator(".chat-header:visible .badge")).toHaveText("idle", { timeout: 60_000 });
   await page.getByRole("button", { name: "Dismiss" }).click();
   await tidyForScreenshot(page);
-  await takeScreenshot(page, "reply-in-calling-conversation");
+  const entries = page.locator(".timeline-entry:visible");
+  await takeScreenshot(page, "reply-in-calling-conversation", await clipAround(page.locator(".chat-header:visible"), entries.last(), 8, 0));
 });

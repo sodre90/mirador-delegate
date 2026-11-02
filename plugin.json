@@ -2,7 +2,7 @@
   "name": "delegate",
   "title": "Delegate",
   "icon": "icon.svg",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "api": 5,
   "canvas": { "host": "host.ts", "view": "view.js" },
   "profileSettings": [
