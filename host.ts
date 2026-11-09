@@ -9,10 +9,16 @@ const ASK_FOR_A_SHORT_ANSWER =
 /** In plugin.json: the profile a profile's conversations hand tasks to when the agent names none. */
 const DELEGATE_TO = "delegate-to";
 
+/** In plugin.json: the model of that profile the tasks handed to it run on. */
+const DELEGATE_MODEL = "delegate-model";
+
 interface DelegateInput {
   profile?: string;
+  model?: string;
   task: string;
 }
+
+const isSameProfile = (name: string, other: string | null) => other !== null && name.trim().toLowerCase() === other.trim().toLowerCase();
 
 function cappedReply(text: string, conversationId: string) {
   if (text.length <= REPLY_LIMIT) return text;
@@ -40,14 +46,22 @@ const host: CanvasHost = {
             minLength: 1,
             description: "The Mirador profile to run it on, by name, e.g. the one the user named. Leave it out for the one this conversation's profile delegates to.",
           },
+          model: {
+            type: "string",
+            minLength: 1,
+            description: "A model of that profile's agent, by id or name, e.g. \"haiku\", only when the user names one. Leave it out for the one set for the profile this conversation's profile delegates to, else that profile's own.",
+          },
           task: { type: "string", minLength: 1, description: "Everything the other agent needs: what to do, which files or commands, and what to answer with." },
         },
         required: ["task"],
       },
       async run(input, context) {
-        const { profile = context.profileSetting(DELEGATE_TO), task } = input as DelegateInput;
+        const delegateTo = context.profileSetting(DELEGATE_TO);
+        const { profile = delegateTo, model: namedModel, task } = input as DelegateInput;
         if (!profile) throw new Error("Name the profile to delegate to: this conversation's profile has none set in Delegate to (in Mirador's Profiles).");
-        const started = await context.startConversation({ profile, prompt: `${task}${ASK_FOR_A_SHORT_ANSWER}` });
+        const modelOfDelegateTo = isSameProfile(profile, delegateTo) ? context.profileSetting(DELEGATE_MODEL) : null;
+        const model = namedModel ?? modelOfDelegateTo ?? undefined;
+        const started = await context.startConversation({ profile, prompt: `${task}${ASK_FOR_A_SHORT_ANSWER}`, ...(model && { model }) });
         return `Started conversation ${started.id} on ${started.profile}. Its reply comes as your next message; carry on with other work meanwhile, or end your turn.`;
       },
     },
@@ -64,7 +78,7 @@ const host: CanvasHost = {
     const delegateTo = profileSetting(DELEGATE_TO);
     if (!delegateTo) return null;
     return {
-      instructions: `- delegate: this profile delegates to ${delegateTo}. Hand it easy, self-contained tasks yourself, without asking first, and leave out the profile argument.`,
+      instructions: `- delegate: this profile delegates to ${delegateTo}. Hand it easy, self-contained tasks yourself, without asking first, and leave out the profile and model arguments.`,
     };
   },
 };

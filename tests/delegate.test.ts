@@ -5,15 +5,15 @@ import type { CanvasActionContext, CanvasToolContext } from "../mirador/api.ts";
 const delegate = host.tools.delegate!;
 
 /** Conversation `conversationId`'s context, starting conversations c2, c3… on the profile as Mirador names it. */
-function contexts(delegateTo: string | null = null) {
-  const started: { profile: string; prompt: string }[] = [];
+function contexts(delegateTo: string | null = null, delegateModel: string | null = null) {
+  const started: { profile: string; prompt: string; model?: string }[] = [];
   const prompts: { conversationId: string; text: string; afterTurn?: boolean }[] = [];
   const contextOf = (conversationId: string) =>
     ({
       conversationId,
-      profileSetting: (id: string) => (id === "delegate-to" ? delegateTo : null),
+      profileSetting: (id: string) => ({ "delegate-to": delegateTo, "delegate-model": delegateModel })[id] ?? null,
       prompt: async (text: string, options?: { afterTurn?: boolean }) => void prompts.push({ conversationId, text, ...options }),
-      startConversation: async (start: { profile: string; prompt: string }) => {
+      startConversation: async (start: { profile: string; prompt: string; model?: string }) => {
         if (start.profile === "nope") throw new Error("There is no profile named nope; the profiles are Pi Radiance.");
         started.push(start);
         return { id: `c${started.length + 1}`, profile: "Pi Radiance" };
@@ -72,7 +72,25 @@ test("without a profile named, it delegates to the one the conversation's profil
 
 test("a profile that delegates to another tells its conversations to hand it easy tasks without asking; one that doesn't adds nothing", () => {
   expect(host.guidanceFor!((id) => (id === "delegate-to" ? "Claude Qwen 27b" : null))?.instructions).toBe(
-    "- delegate: this profile delegates to Claude Qwen 27b. Hand it easy, self-contained tasks yourself, without asking first, and leave out the profile argument.",
+    "- delegate: this profile delegates to Claude Qwen 27b. Hand it easy, self-contained tasks yourself, without asking first, and leave out the profile and model arguments.",
   );
   expect(host.guidanceFor!(() => null)).toBeNull();
+});
+
+test("a task for the profile it delegates to runs on the model set for it, one the agent names wins, and another profile gets only a model the agent names", async () => {
+  const { contextOf, started } = contexts("Claude Qwen 27b", "haiku");
+  const modelsStartedOn = async (input: { profile?: string; model?: string }) => {
+    await delegate.run({ ...input, task: "Summarise build.log" }, contextOf("c1"));
+    return started.at(-1)!.model;
+  };
+
+  expect(await modelsStartedOn({})).toBe("haiku");
+  expect(await modelsStartedOn({ profile: " claude qwen 27B" })).toBe("haiku");
+  expect(await modelsStartedOn({ model: "opus" })).toBe("opus");
+  expect(await modelsStartedOn({ profile: "Pi Radiance" })).toBeUndefined();
+  expect(await modelsStartedOn({ profile: "Pi Radiance", model: "opus" })).toBe("opus");
+
+  const withoutModel = contexts("Claude Qwen 27b");
+  await delegate.run({ task: "Summarise build.log" }, withoutModel.contextOf("c1"));
+  expect(withoutModel.started[0]).not.toHaveProperty("model");
 });

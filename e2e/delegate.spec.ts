@@ -7,6 +7,8 @@ let promptsFile: string;
 const delegatorName = "delegator";
 const workerName = "worker";
 const task = "SAY Found 3 callers.";
+/** The stub agent then lists Default, Opus and Haiku, and answers CHOICES with the model it is on. */
+const WORKER_OFFERS_MODELS = "FAKE_ACP_MODES=1\nFAKE_ACP_MODELS=1";
 
 /** Everything the agent was given, in order; a prompt of several lines is written as it stands. */
 const agentSaw = () => readFileSync(promptsFile, "utf8");
@@ -37,7 +39,7 @@ test("the delegate tool hands a task to a conversation on another profile, whose
   await helpers().addWorkspace(page, host.projectDir);
   const profiles = await helpers().createProfile(page, delegatorName, "", "", "opencode");
   await profiles.getByRole("button", { name: "Close" }).click();
-  const other = await helpers().createProfile(page, workerName, "", "", "opencode");
+  const other = await helpers().createProfile(page, workerName, WORKER_OFFERS_MODELS, "", "opencode");
   await other.getByRole("button", { name: "Close" }).click();
   await page.getByLabel("Agent", { exact: true }).selectOption({ label: `${delegatorName} · opencode` });
   const conversationId = await startConversationWithoutModel(page);
@@ -81,11 +83,31 @@ test("the delegate tool hands a task to a conversation on another profile, whose
 
     const dialog = await helpers().openProfiles(page);
     await dialog.locator(".profile-list li", { hasText: delegatorName }).click();
+    await helpers().openProfileTab(dialog, "Plugins");
     await dialog.getByLabel("Profile Delegate to").selectOption({ label: workerName });
     await dialog.getByRole("button", { name: "Save" }).click();
     await expect(dialog.locator(".saved")).toHaveText("Saved");
     await dialog.getByRole("button", { name: "Close" }).click();
 
     expect(await helpers().callCanvasTool(host, conversationId, "delegate", { task })).toMatch(/^Started conversation [0-9a-f-]+ on worker\./);
+  });
+
+  await test.step("with Delegate model set too, the task runs on that model of the profile, and on one the agent names instead", async () => {
+    const delegateChoices = (input: { model?: string }) => helpers().callCanvasTool(host, conversationId, "delegate", { ...input, task: "CHOICES" });
+    await delegateChoices({});
+    await expect.poll(agentSaw, "until a model is set, the profile's agent keeps its own").toContain("On model default, ");
+
+    const dialog = await helpers().openProfiles(page);
+    await dialog.locator(".profile-list li", { hasText: delegatorName }).click();
+    await helpers().openProfileTab(dialog, "Plugins");
+    await dialog.getByLabel("Profile Delegate model").selectOption({ label: "Haiku" });
+    await dialog.getByRole("button", { name: "Save" }).click();
+    await expect(dialog.locator(".saved")).toHaveText("Saved");
+    await dialog.getByRole("button", { name: "Close" }).click();
+
+    await delegateChoices({});
+    await expect.poll(agentSaw).toContain("On model haiku, ");
+    await delegateChoices({ model: "opus" });
+    await expect.poll(agentSaw).toContain("On model opus, ");
   });
 });

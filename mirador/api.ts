@@ -1,5 +1,5 @@
 /**
- * Mirador's canvas plugin API, version 5, as this plugin uses it. Mirador doesn't publish these types yet, so this is a
+ * Mirador's canvas plugin API, version 9, as this plugin uses it. Mirador doesn't publish these types yet, so this is a
  * copy of its shared/canvas-plugins.ts.
  */
 
@@ -90,7 +90,15 @@ export interface CanvasToolContext<Data = unknown> extends CanvasPluginContext<D
    * plugin's `replied` hears when it ends its work. Throws, naming the profiles there are, when none has that name, and
    * when a plugin's tool started this conversation, which keeps to one level of them.
    */
-  startConversation(start: { profile: string; prompt: string }): Promise<StartedConversation>;
+  startConversation(start: {
+    profile: string;
+    prompt: string;
+    /**
+     * A model, by id or name, matched to the agent's models as Mirador matches them, e.g. "opus", over the profile's
+     * own. One the agent doesn't offer leaves the agent's own and shows the user why in that conversation.
+     */
+    model?: string;
+  }): Promise<StartedConversation>;
 }
 
 export interface StartedConversation {

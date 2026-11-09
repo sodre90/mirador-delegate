@@ -2,8 +2,8 @@
   "name": "delegate",
   "title": "Delegate",
   "icon": "icon.svg",
-  "version": "0.3.3",
-  "api": 5,
+  "version": "0.4.0",
+  "api": 9,
   "canvas": { "host": "host.ts", "view": "view.js" },
   "profileSettings": [
     {
@@ -11,6 +11,13 @@
       "label": "Delegate to",
       "hint": "The profile this profile's conversations hand easy tasks to, without asking first. None: they delegate only when you ask.",
       "choices": "profiles",
+      "default": ""
+    },
+    {
+      "id": "delegate-model",
+      "label": "Delegate model",
+      "hint": "The model of that profile its delegated tasks run on. Agent's default: the one that profile's agent starts on.",
+      "choices": { "modelsOf": "delegate-to" },
       "default": ""
     }
   ]
