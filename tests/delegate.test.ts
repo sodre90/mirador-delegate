@@ -22,7 +22,7 @@ function contexts(delegateTo: string | null = null, delegateModel: string | null
   return { contextOf, started, prompts };
 }
 
-test("starts a conversation on the profile with the task, returns at once, and passes its reply back after the caller's turn", async () => {
+test("starts a conversation on the profile with the task, returns at once, and passes its reply into the caller's turn, without waiting for it to end", async () => {
   const { contextOf, started, prompts } = contexts();
   const answer = await delegate.run({ profile: "pi radiance", task: "Summarise build.log" }, contextOf("c1"));
 
@@ -37,7 +37,6 @@ test("starts a conversation on the profile with the task, returns at once, and p
     {
       conversationId: "c1",
       text: "The task delegated to Pi Radiance finished. Treat it as leads to check, not as verified. Its agent's last message:\n\nTwo tests fail on a timeout.",
-      afterTurn: true,
     },
   ]);
 });

@@ -67,7 +67,7 @@ const host: CanvasHost = {
     },
   },
   async replied(started, reply, context) {
-    await context.prompt(replyMessage(started.profile, started.id, reply), { afterTurn: true });
+    await context.prompt(replyMessage(started.profile, started.id, reply));
   },
   guidance: {
     instructions:

@@ -9,6 +9,8 @@ const workerName = "worker";
 const task = "SAY Found 3 callers.";
 /** The stub agent then lists Default, Opus and Haiku, and answers CHOICES with the model it is on. */
 const WORKER_OFFERS_MODELS = "FAKE_ACP_MODES=1\nFAKE_ACP_MODELS=1";
+/** The stub agent then takes messages into a `REPLY STEERED ` turn, which runs until one comes. */
+const DELEGATOR_TAKES_MESSAGES_MID_TURN = "FAKE_ACP_STEERS=1";
 
 /** Everything the agent was given, in order; a prompt of several lines is written as it stands. */
 const agentSaw = () => readFileSync(promptsFile, "utf8");
@@ -37,7 +39,7 @@ async function sendAndWait(page: Page, text: string) {
 test("the delegate tool hands a task to a conversation on another profile, whose reply comes back as the caller's next message, and its refusals say why", async ({ page }) => {
   await helpers().signIn(page, host);
   await helpers().addWorkspace(page, host.projectDir);
-  const profiles = await helpers().createProfile(page, delegatorName, "", "", "opencode");
+  const profiles = await helpers().createProfile(page, delegatorName, DELEGATOR_TAKES_MESSAGES_MID_TURN, "", "opencode");
   await profiles.getByRole("button", { name: "Close" }).click();
   const other = await helpers().createProfile(page, workerName, WORKER_OFFERS_MODELS, "", "opencode");
   await other.getByRole("button", { name: "Close" }).click();
@@ -63,6 +65,17 @@ test("the delegate tool hands a task to a conversation on another profile, whose
     expect(delivered).toContain("End with a short, plain answer");
     const fromDelegate = page.locator(".timeline-entry:visible", { has: page.locator(".author", { hasText: "From Delegate" }) });
     await expect(fromDelegate, "the caller's timeline shows the reply as the plugin's, not the user's").toContainText(`The task delegated to ${workerName} finished.`);
+  });
+
+  await test.step("a reply that comes while the caller's turn still runs joins that turn rather than waiting for its end", async () => {
+    const badge = page.locator(".chat-header:visible .badge");
+    await helpers().sendMessage(page, "REPLY STEERED the review");
+    await expect(page.locator(".timeline:visible")).toContainText("Starting on the review");
+    await expect(badge).not.toHaveText("idle");
+
+    await delegate(conversationId, workerName);
+    await expect(page.locator(".timeline:visible")).toContainText(`Also The task delegated to ${workerName} finished.`, { timeout: 60_000 });
+    await expect(badge).toHaveText("idle");
   });
 
   await test.step("a profile name that isn't there comes back as an error naming the profiles there are", async () => {
