@@ -65,6 +65,7 @@ test("the delegate tool hands a task to a conversation on another profile, whose
     expect(delivered).toContain("End with a short, plain answer");
     const fromDelegate = page.locator(".timeline-entry:visible", { has: page.locator(".author", { hasText: "From Delegate" }) });
     await expect(fromDelegate, "the caller's timeline shows the reply as the plugin's, not the user's").toContainText(`The task delegated to ${workerName} finished.`);
+    await expect(page, "the reply reaching the caller is what tells you, so the delegated conversation waits for no one").toHaveTitle("Mirador");
   });
 
   await test.step("a reply that comes while the caller's turn still runs joins that turn rather than waiting for its end", async () => {
