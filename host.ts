@@ -36,6 +36,7 @@ const host: CanvasHost = {
   items: {},
   tools: {
     delegate: {
+      onDemand: true,
       description:
         "Hand a self-contained task to a new conversation on another profile, such as one running a local model, in this workspace. Returns at once; that conversation's final reply arrives as your next message. The task must stand on its own: the other agent sees nothing of this conversation.",
       input: {

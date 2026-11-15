@@ -4,6 +4,11 @@ import type { CanvasActionContext, CanvasToolContext } from "../mirador/api.ts";
 
 const delegate = host.tools.delegate!;
 
+test("the delegate tool loads when an agent looks for it, and the guidance says when to delegate", () => {
+  expect(delegate.onDemand).toBe(true);
+  expect(host.guidance!.instructions).toContain("- delegate: hand an easy, self-contained task");
+});
+
 /** Conversation `conversationId`'s context, starting conversations c2, c3… on the profile as Mirador names it. */
 function contexts(delegateTo: string | null = null, delegateModel: string | null = null) {
   const started: { profile: string; prompt: string; model?: string }[] = [];
