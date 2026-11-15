@@ -64,6 +64,11 @@ test("the tool's guidance says when to delegate", () => {
   expect(host.guidance?.often).toStartWith("- delegate: ");
 });
 
+test("Delegate loads on request, with a line that says what it does and when to reach for it", () => {
+  expect(host.guidance?.summary).toStartWith("hand a self-contained task to a conversation on another profile");
+  expect(host.guidance?.summary).toContain("when the user asks to delegate");
+});
+
 test("without a profile named, it delegates to the one the conversation's profile delegates to, and says how to set one when there is none", async () => {
   const set = contexts("Claude Qwen 27b");
   await delegate.run({ task: "Summarise build.log" }, set.contextOf("c1"));

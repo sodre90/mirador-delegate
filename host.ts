@@ -74,6 +74,7 @@ const host: CanvasHost = {
     instructions:
       "- delegate: hand an easy, self-contained task to a conversation on another profile, such as a local model, when the user asks or when it reads a lot but answers in a few lines: summarise files or logs, find where something happens, triage a list, draft boilerplate. Its reply arrives as your next message; check it before relying on it.",
     often: "- delegate: when the user asks, or for an easy task that reads a lot and answers in a few lines.",
+    summary: "hand a self-contained task to a conversation on another profile, such as a local model; when the user asks to delegate, or for an easy task that reads a lot and answers in a few lines.",
   },
   guidanceFor(profileSetting) {
     const delegateTo = profileSetting(DELEGATE_TO);
