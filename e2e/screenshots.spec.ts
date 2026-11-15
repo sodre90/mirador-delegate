@@ -76,6 +76,7 @@ test("screenshots of delegate at work", async ({ page }) => {
   const dialog = await helpers().openProfiles(page);
   await dialog.locator(".profile-list li", { hasText: callerName }).click();
   await helpers().openProfileTab(dialog, "Plugins");
+  await helpers().openPluginRow(dialog, "Delegate");
   await dialog.getByLabel("Profile Delegate to").selectOption({ label: workerName });
   const settingRow = dialog.locator("label[data-hint]", { hasText: "Delegate to" });
   await takeScreenshot(page, "delegate-to-setting", await clipAround(settingRow, settingRow, 10, 12));

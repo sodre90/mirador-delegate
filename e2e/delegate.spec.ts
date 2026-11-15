@@ -98,6 +98,7 @@ test("the delegate tool hands a task to a conversation on another profile, whose
     const dialog = await helpers().openProfiles(page);
     await dialog.locator(".profile-list li", { hasText: delegatorName }).click();
     await helpers().openProfileTab(dialog, "Plugins");
+    await helpers().openPluginRow(dialog, "Delegate");
     await dialog.getByLabel("Profile Delegate to").selectOption({ label: workerName });
     await dialog.getByRole("button", { name: "Save" }).click();
     await expect(dialog.locator(".saved")).toHaveText("Saved");
@@ -114,6 +115,7 @@ test("the delegate tool hands a task to a conversation on another profile, whose
     const dialog = await helpers().openProfiles(page);
     await dialog.locator(".profile-list li", { hasText: delegatorName }).click();
     await helpers().openProfileTab(dialog, "Plugins");
+    await helpers().openPluginRow(dialog, "Delegate");
     await dialog.getByLabel("Profile Delegate model").selectOption({ label: "Haiku" });
     await dialog.getByRole("button", { name: "Save" }).click();
     await expect(dialog.locator(".saved")).toHaveText("Saved");
